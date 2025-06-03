@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using BankingApi.EventReceiver.Database;
 using BankingApi.EventReceiver.Services;
 using BankingApi.EventReceiver.Consumers;
+using BankingApi.EventReceiver.Models;
 
 namespace BankingApi.EventReceiver
 {
@@ -55,8 +56,33 @@ namespace BankingApi.EventReceiver
             {
                 var context = migrationScope.ServiceProvider.GetRequiredService<BankingApiDbContext>();
                 await context.Database.MigrateAsync();
+
+                // Seed bank accounts if they don't exist
+                var creditAccountId = Guid.Parse("7d445724-24ec-4d52-aa7a-ff2bac9f191d");
+                var debitAccountId = Guid.Parse("3bbaf4ca-5bfa-4922-a395-d755beac475f");
+
+                if (!await context.BankAccounts.AnyAsync(b => b.Id == creditAccountId))
+                {
+                    context.BankAccounts.Add(new BankAccount
+                    {
+                        Id = creditAccountId,
+                        Balance = 1000.00m // Initial balance
+                    });
+                }
+
+                if (!await context.BankAccounts.AnyAsync(b => b.Id == debitAccountId))
+                {
+                    context.BankAccounts.Add(new BankAccount
+                    {
+                        Id = debitAccountId,
+                        Balance = 500.00m // Initial balance
+                    });
+                }
+
+                await context.SaveChangesAsync();
+
                 var logger = migrationScope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-                logger.LogInformation("Database migration completed successfully");
+                logger.LogInformation("Database migration and seeding completed successfully");
             }
 
             await RunWorkerAsync(host);

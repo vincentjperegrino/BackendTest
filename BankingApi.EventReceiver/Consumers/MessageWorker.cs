@@ -178,6 +178,9 @@ namespace BankingApi.EventReceiver.Consumers
                     throw new NonTransientException($"Bank account {transactionMessage.BankAccountId} not found");
                 }
 
+                // Store previous balance BEFORE modification
+                var previousBalance = bankAccount.Balance;
+
                 // Calculate new balance
                 var newBalance = transactionMessage.MessageType switch
                 {
@@ -203,7 +206,7 @@ namespace BankingApi.EventReceiver.Consumers
                     MessageType = transactionMessage.MessageType,
                     Amount = transactionMessage.Amount,
                     ProcessedAt = DateTime.UtcNow,
-                    PreviousBalance = bankAccount.Balance - (transactionMessage.MessageType == "Credit" ? transactionMessage.Amount : -transactionMessage.Amount),
+                    PreviousBalance = previousBalance,
                     NewBalance = newBalance
                 });
 
@@ -216,7 +219,7 @@ namespace BankingApi.EventReceiver.Consumers
             catch (DbUpdateConcurrencyException ex)
             {
                 Logger.LogWarning(ex, "Concurrency conflict processing transaction {TransactionId}, will retry", transactionMessage.Id);
-                throw; // This will be treated as transient
+                throw;
             }
             catch (Exception ex) when (IsTransientDatabaseError(ex))
             {
