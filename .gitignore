@@ -370,3 +370,5 @@ appsettings.Local.json
 
 # Ignore docker-compose file
 /docker-compose.yml
+/BankingApi.EventReceiver/appsettings.json
+/BankingApi.EventReceiver/Emulator/.env
